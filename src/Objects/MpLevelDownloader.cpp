@@ -1,4 +1,5 @@
 #include "Objects/MpLevelDownloader.hpp"
+#include "UI/MpDownloadedSongsGSM.hpp"
 #include "songdownloader/shared/BeatSaverAPI.hpp"
 #include "Utilities.hpp"
 #include "logging.hpp"
@@ -60,11 +61,13 @@ namespace MultiplayerCore::Objects {
 
             done = false;
             DEBUG("Scheduling song refresh");
-            Lapiz::Utilities::MainThreadScheduler::Schedule([&done](){
+            Lapiz::Utilities::MainThreadScheduler::Schedule([&done, &hash](){
                 DEBUG("Invoking song refresh");
-                RuntimeSongLoader::API::RefreshSongs(false, [&done](auto&){
+                RuntimeSongLoader::API::RefreshSongs(false, [&done, &hash](auto&){
                     DEBUG("Song refresh finished");
                     done = true;
+                    DEBUG("Adding Song to DownloadedList");
+                    MultiplayerCore::UI::MpDownloadedSongsGSM::AddToQueue(hash);
                 });
             });
 

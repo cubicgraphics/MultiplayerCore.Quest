@@ -45,6 +45,7 @@ namespace IncludedAssets {
 
 	DECLARE_FILE(Colors_png)
 	DECLARE_FILE(ColorsUI_bsml)
+	DECLARE_FILE(DownloadedSongs_bsml)
 	DECLARE_FILE(HaveReq_png)
 	DECLARE_FILE(HaveSuggestion_png)
 	DECLARE_FILE(Info_png)

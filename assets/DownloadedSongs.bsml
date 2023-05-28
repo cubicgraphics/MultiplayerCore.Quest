@@ -1,0 +1,15 @@
+<bg>
+  <vertical vertical-fit='MinSize'>
+    <checkbox text='Auto-Delete Songs'/>
+    <list id='list' select-cell='SelectCell' visible-cells='5' size-delta-x='80' size-delta-y='53'/>
+    <modal id='modal' size-delta-x='65' size-delta-y='25' clickerino-offerino-closerino='true'>
+      <vertical>
+        <text align='Center' text='Do you want to delete this song?' />
+        <horizontal>
+          <button label='<color=#ff0000>Delete</color>' on-click='Delete' />
+          <button label='<color=#00ff00>Keep</color>' on-click='Keep' />
+        </horizontal>
+      </vertical>
+    </modal>
+  </vertical>
+</bg>

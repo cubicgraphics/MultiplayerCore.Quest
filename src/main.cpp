@@ -6,6 +6,8 @@
 #include "Installers/MpAppInstaller.hpp"
 #include "Installers/MpMenuInstaller.hpp"
 
+#include "UI/MpDownloadedSongsGSM.hpp"
+
 #include "lapiz/shared/zenject/Zenjector.hpp"
 #include "bsml/shared/BSML.hpp"
 
@@ -27,6 +29,8 @@ extern "C" void load() {
     custom_types::Register::AutoRegister();
     Hooks::InstallHooks(logger);
     BSML::Init();
+
+    BSML::Register::RegisterGameplaySetupTab<MultiplayerCore::UI::MpDownloadedSongsGSM*>("MpDownloads", BSML::MenuType::Online);
 
     auto zenjector = Lapiz::Zenject::Zenjector::Get();
     zenjector->Install<MultiplayerCore::Installers::MpAppInstaller*>(Lapiz::Zenject::Location::App);
