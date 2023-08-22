@@ -22,32 +22,22 @@ namespace MultiplayerCore::UI {
 
     void MpDownloadedSongsGSM::ctor() {
         INVOKE_CTOR();
+        _instance = this;
     }
 
     // TODO: Add keep all and delete all option
     void MpDownloadedSongsGSM::DidActivate(bool firstActivation) {
-        DEBUG("MpDownloadedSongsGSM::DidActivate");
-        if (firstActivation) {
-            _instance = this;
+        if (firstActivation)
             BSML::parse_and_construct(IncludedAssets::DownloadedSongs_bsml, get_transform(), this);
-        }
 
-        // InsertCell("5E3AFB8269F6D06EE9D1839EBF413B947DC931FF");
+        // AddToQueue("7BBF24A965C2B950EB9CBB3");
 
-        DEBUG("DownloadedSongsGSM::DidActivate");
         Refresh();
     }
 
 
     void MpDownloadedSongsGSM::OnEnable() {
-        if (list && list->tableView) {
-            if (!mapQueue.empty()) {
-                InsertCell(mapQueue.back());
-                mapQueue.pop_back();
-            }
-
-            Refresh();
-        }
+        needRefresh = true;
     }
 
     void MpDownloadedSongsGSM::AddToQueue(std::string hash) { mapQueue.push_back(hash); }
@@ -65,8 +55,8 @@ namespace MultiplayerCore::UI {
             if (level->coverImage) { // if cover image already loaded
                 instance->AddCell(level->coverImage, level);
             } else { // still need to load it
-                std::thread([level](){
-                    auto t = level->GetCoverImageAsync(System::Threading::CancellationToken::get_None());
+                auto t = level->GetCoverImageAsync(System::Threading::CancellationToken::get_None());
+                std::thread([t, level](){
                     while (!t->get_IsCompleted()) std::this_thread::yield();
 
                     auto instance = get_instance();
@@ -96,14 +86,18 @@ namespace MultiplayerCore::UI {
     }
 
     void MpDownloadedSongsGSM::Refresh() {
-        DEBUG("DownloadedSongsGSM::Refresh");
-
         if (!get_isActiveAndEnabled()) {
             DEBUG("Enqueueing refresh for later");
             needRefresh = true;
             return;
         }
 
+        if (!list || !list->m_CachedPtr.m_value) {
+            ERROR("Refresh while list was null");
+            return;
+        }
+
+        DEBUG("Refreshing list for real");
         list->tableView->ClearSelection();
         list->tableView->ReloadData();
 
@@ -111,7 +105,10 @@ namespace MultiplayerCore::UI {
     }
 
     void MpDownloadedSongsGSM::AddCell(UnityEngine::Sprite* coverImageSprite, GlobalNamespace::CustomPreviewBeatmapLevel* level) {
+        DEBUG("Adding cell");
         if (level) { // we have cover & level
+            DEBUG("Level: {}", level->get_levelID());
+
             auto songName = level->get_songName();
             auto authorName = level->get_songAuthorName();
             if (!authorName) authorName = level->get_levelAuthorName();
