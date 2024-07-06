@@ -164,10 +164,10 @@ namespace MultiplayerCore::UI {
         ClearCells(_levelInfoCells);
 
         auto customLevel = il2cpp_utils::try_cast<SongCore::SongLoader::CustomBeatmapLevel>(level).value_or(nullptr);
-        // hacky way of being able to just break out of an "if" via break;
-        switch ((int64_t)customLevel) {
-            // valid ptr
-            default: {
+        // hacky way of being able to just break out of an "if" via break rather than a goto: label
+        switch (customLevel != nullptr) {
+            // non-null ptr
+            case true: {
                 auto saveData = customLevel->standardLevelInfoSaveData;
                 if (!saveData) break;
 
@@ -217,8 +217,8 @@ namespace MultiplayerCore::UI {
                     }
                 }
             } break;
-            // nullptr, means it's a normal level
-            case 0: break;
+            // nullptr
+            case false: break;
         }
 
         UpdateDataCells();
