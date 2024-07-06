@@ -22,7 +22,7 @@ namespace MultiplayerCore::UI {
         static auto method = il2cpp_utils::il2cpp_type_check::MetadataGetter<&GlobalNamespace::BeatmapSelectionView::SetBeatmap>::methodInfo();
         static auto base = [](GlobalNamespace::BeatmapSelectionView* self, ByRef<GlobalNamespace::BeatmapKey> beatmapKey){ return il2cpp_utils::RunMethodRethrow<void, false>(self, method, beatmapKey); };
         if (!beatmapKey->IsValid()) {
-            DEBUG("beatmapkey was invalid");
+            DEBUG("beatmapkey was invalid, {} {} {}", beatmapKey->levelId, (int)beatmapKey->difficulty, beatmapKey->beatmapCharacteristic ? beatmapKey->beatmapCharacteristic->get_serializedName() : "null");
             return base(this, beatmapKey);
         }
 
@@ -34,7 +34,7 @@ namespace MultiplayerCore::UI {
 
         auto packet = _mpPlayersDataModel->FindLevelPacket(levelHash);
         if (!packet) { // level was probably selected by the local player from their installed maps, since no other player had it selected
-            DEBUG("Could not find packet for levelhash {}", levelHash);
+            DEBUG("Could not find packet for levelhash {}, possibly local selection", levelHash);
             return base(this, beatmapKey);
         }
 
@@ -44,18 +44,30 @@ namespace MultiplayerCore::UI {
 
         // create a beatmap level for display
         auto level = _mpBeatmapLevelProvider->GetBeatmapFromPacket(packet);
-        auto dict = System::Collections::Generic::Dictionary_2<System::ValueTuple_2<UnityW<GlobalNamespace::BeatmapCharacteristicSO>, GlobalNamespace::BeatmapDifficulty>, GlobalNamespace::BeatmapBasicData*>::New_ctor();
-        dict->Add(
-            System::ValueTuple_2<UnityW<GlobalNamespace::BeatmapCharacteristicSO>, GlobalNamespace::BeatmapDifficulty>(
-                beatmapKey->beatmapCharacteristic,
-                beatmapKey->difficulty
-            ),
-            GlobalNamespace::BeatmapBasicData::New_ctor(
-                0, 0, GlobalNamespace::EnvironmentName::getStaticF_Empty(),
-                nullptr, 0, 0, 0,
-                level->allMappers, level->allLighters
-            )
+
+        using BasicDataDict = System::Collections::Generic::Dictionary_2<System::ValueTuple_2<UnityW<GlobalNamespace::BeatmapCharacteristicSO>, GlobalNamespace::BeatmapDifficulty>, GlobalNamespace::BeatmapBasicData*>;
+        BasicDataDict* dict = reinterpret_cast<BasicDataDict*>(level->beatmapBasicData);
+
+        if (!dict) {
+            dict = BasicDataDict::New_ctor();
+            level->beatmapBasicData = dict->i___System__Collections__Generic__IReadOnlyDictionary_2_TKey_TValue_();
+        }
+
+        auto key = System::ValueTuple_2<UnityW<GlobalNamespace::BeatmapCharacteristicSO>, GlobalNamespace::BeatmapDifficulty>(
+            beatmapKey->beatmapCharacteristic,
+            beatmapKey->difficulty
         );
+
+        if (!dict->ContainsKey(key)) {
+            dict->Add(
+                key,
+                GlobalNamespace::BeatmapBasicData::New_ctor(
+                    0, 0, GlobalNamespace::EnvironmentName::getStaticF_Empty(),
+                    nullptr, 0, 0, 0,
+                    level->allMappers, level->allLighters
+                )
+            );
+        }
 
         level->beatmapBasicData = dict->i___System__Collections__Generic__IReadOnlyDictionary_2_TKey_TValue_();
         _levelBar->Setup(level, beatmapKey->beatmapCharacteristic, beatmapKey->difficulty);

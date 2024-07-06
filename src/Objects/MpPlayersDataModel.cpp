@@ -11,7 +11,8 @@
 #include "GlobalNamespace/LobbyPlayerData.hpp"
 #include "GlobalNamespace/IMultiplayerSessionManager.hpp"
 #include "GlobalNamespace/BeatmapLevelsModel.hpp"
-#include <cctype>
+
+#include "bsml/shared/BSML/MainThreadScheduler.hpp"
 
 DEFINE_TYPE(MultiplayerCore::Objects, MpPlayersDataModel);
 
@@ -69,12 +70,11 @@ namespace MultiplayerCore::Objects {
         Base::HandleMenuRpcManagerRecommendBeatmap(userId, beatmapKey);
     }
 
-    void MpPlayersDataModel::SetPlayerBeatmapLevel_override(StringW userId, GlobalNamespace::BeatmapKey& beatmapKey) {
-        if (userId == _multiplayerSessionManager->localPlayer->userId) {
-            std::thread(&MpPlayersDataModel::SendMpBeatmapPacket, this, static_cast<GlobalNamespace::BeatmapKey>(beatmapKey)).detach();
-        }
+    void MpPlayersDataModel::SetLocalPlayerBeatmapLevel_override(GlobalNamespace::BeatmapKey& beatmapKey) {
+        DEBUG("Setting local player beatmap level id '{}'\r\nCheck difficulty '{}'\r\nCheck characteristic '{}'\r\nCheck BeatmapKey Valid '{}'", beatmapKey.levelId, (int)beatmapKey.difficulty, beatmapKey.beatmapCharacteristic ? beatmapKey.beatmapCharacteristic->serializedName : "null", beatmapKey.IsValid());
+        std::thread(&MpPlayersDataModel::SendMpBeatmapPacket, this, static_cast<GlobalNamespace::BeatmapKey>(beatmapKey)).detach();
 
-        Base::SetPlayerBeatmapLevel(userId, byref(beatmapKey));
+        Base::SetLocalPlayerBeatmapLevel(byref(beatmapKey));
     }
 
     void MpPlayersDataModel::SendMpBeatmapPacket(GlobalNamespace::BeatmapKey beatmapKey) {
@@ -87,15 +87,18 @@ namespace MultiplayerCore::Objects {
             return;
         }
 
-        auto level = _beatmapLevelProvider->GetBeatmapAsync(hash).get();
-        if (!level) {
-            DEBUG("couldn't get level, returning...");
-            return;
-        }
+        std::shared_future fut = _beatmapLevelProvider->GetBeatmapAsync(hash);
+        BSML::MainThreadScheduler::AwaitFuture(fut, [fut, beatmapKey, packetSerializer = this->_packetSerializer](){
+            auto level = fut.get();
+            if (!level) {
+                DEBUG("couldn't get level, returning...");
+                return;
+            }
 
-        DEBUG("actually sending the packet");
-        auto packet = MpBeatmapPacket::New_1(level, beatmapKey);
-        _packetSerializer->Send(packet);
+            DEBUG("actually sending the packet");
+            auto packet = MpBeatmapPacket::New_1(level, beatmapKey);
+            packetSerializer->Send(packet);
+        });
     }
 
     Beatmaps::Packets::MpBeatmapPacket* MpPlayersDataModel::GetPlayerPacket(StringW playerId) {
